@@ -9,6 +9,26 @@ $ look -bf 5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8 pwned-passwords-ordered-by-h
 look: pwned-passwords-ordered-by-hash.txt: File too large
 ```
 
+## Usage
+
+1. Fetch the source
+
+        git clone https://github.com/stuartraetaylor/bsdmainutils-look.git
+        cd bsdmainutils-look
+
+2. Build
+
+        make
+
+3. Install
+
+        sudo make install
+
+4. Execute
+
+        look
+
+
 ## Documentation
 
 `look` is a utility to display lines beginning with a given string. Binary search of large files is supported.
