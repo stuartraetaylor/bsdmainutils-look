@@ -31,6 +31,8 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+#define _FILE_OFFSET_BITS 64
+#define _LARGEFILE64_SOURCE 1
 
 #ifndef lint
 static const char copyright[] =
@@ -44,7 +46,6 @@ static char sccsid[] = "@(#)look.c	8.2 (Berkeley) 5/4/95";
 #endif
 #endif /* not lint */
 #include <sys/cdefs.h>
-__FBSDID("$FreeBSD: head/usr.bin/look/look.c 326025 2017-11-20 19:49:47Z pfg $");
 
 /*
  * look -- find lines in a sorted list.
@@ -71,8 +72,13 @@ __FBSDID("$FreeBSD: head/usr.bin/look/look.c 326025 2017-11-20 19:49:47Z pfg $")
 #include <unistd.h>
 #include <wchar.h>
 #include <wctype.h>
+#include <stdint.h>
 
 #include "pathnames.h"
+
+#ifndef SIZE_T_MAX
+# define SIZE_T_MAX SIZE_MAX
+#endif
 
 static char _path_words[] = _PATH_WORDS;
 
@@ -191,7 +197,7 @@ prepkey(const char *string, wchar_t termchar)
 	writep = key;
 	while ((clen = mbrtowc(&ch, readp, MB_LEN_MAX, NULL)) != 0) {
 		if (clen == (size_t)-1 || clen == (size_t)-2)
-			errc(2, EILSEQ, NULL);
+			errx(2, "%s", strerror(EILSEQ));
 		if (fflag)
 			ch = towlower(ch);
 		if (!dflag || iswalnum(ch))
