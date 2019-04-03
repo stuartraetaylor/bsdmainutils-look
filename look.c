@@ -80,7 +80,7 @@ static char _path_words[] = _PATH_WORDS;
 #define	GREATER		1
 #define	LESS		(-1)
 
-static int dflag, fflag;
+static int dflag, fflag, bflag;
 
 static char	*binary_search(wchar_t *, unsigned char *, unsigned char *);
 static int	 compare(wchar_t *, unsigned char *, unsigned char *);
@@ -88,11 +88,13 @@ static char	*linear_search(wchar_t *, unsigned char *, unsigned char *);
 static int	 look(wchar_t *, unsigned char *, unsigned char *);
 static wchar_t	*prepkey(const char *, wchar_t);
 static void	 print_from(wchar_t *, unsigned char *, unsigned char *);
+static int      grep(wchar_t *, unsigned char *, unsigned char *);
 
 static void usage(void);
 
 static struct option longopts[] = {
 	{ "alternative",no_argument,	NULL, 'a' },
+	{ "binary",	no_argument,	NULL, 'b' },
 	{ "alphanum",	no_argument,	NULL, 'd' },
 	{ "ignore-case",no_argument,	NULL, 'i' },
 	{ "terminate",	required_argument, NULL, 't'},
@@ -113,10 +115,13 @@ main(int argc, char *argv[])
 
 	file = _path_words;
 	termchar = L'\0';
-	while ((ch = getopt_long(argc, argv, "+adft:", longopts, NULL)) != -1)
+	while ((ch = getopt_long(argc, argv, "+abdft:", longopts, NULL)) != -1)
 		switch(ch) {
 		case 'a':
 			/* COMPATIBILITY */
+			break;
+		case 'b':
+			bflag = 1;
 			break;
 		case 'd':
 			dflag = 1;
@@ -158,7 +163,10 @@ main(int argc, char *argv[])
 		if ((front = mmap(NULL, (size_t)sb.st_size, PROT_READ, MAP_SHARED, fd, (off_t)0)) == MAP_FAILED)
 			err(2, "%s", file);
 		back = front + sb.st_size;
-		match *= (look(key, front, back));
+		if (bflag)
+                        match *= (look(key, front, back));
+                else
+                        match *= (grep(key, front, back));
 		close(fd);
 	} while (argc-- > 2 && (file = *argv++));
 
@@ -302,6 +310,32 @@ linear_search(wchar_t *string, unsigned char *front, unsigned char *back)
 }
 
 /*
+ * Look at every string in the wordlist for a match. Since wordlists are often
+ * not reliably sorted, or are sorted in locale-dependent ways, we use this
+ * method by default.
+ */
+int
+grep(wchar_t *string, unsigned char *front, unsigned char *back)
+{
+	int ret = 1;
+
+	for (; front < back; ++front) {
+		if (compare(string, front, back) == EQUAL) {
+			for (; front < back && *front != '\n'; ++front)
+				if (putchar(*front) == EOF)
+					err(2, "stdout");
+			if (putchar('\n') == EOF)
+				err(2, "stdout");
+			ret = 0;
+		}
+
+		/* Move to the next word in the list. */
+                while (front < back && *front != '\n')
+                        front++;
+	}
+	return(ret);
+}
+/*
  * Print as many lines as match string, starting at front.
  */
 static void
@@ -358,6 +392,6 @@ compare(wchar_t *s1, unsigned char *s2, unsigned char *back)
 static void
 usage(void)
 {
-	(void)fprintf(stderr, "usage: look [-df] [-t char] string [file ...]\n");
+	(void)fprintf(stderr, "usage: look [-bdf] [-t char] string [file ...]\n");
 	exit(2);
 }
